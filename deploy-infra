@@ -8,15 +8,15 @@ STACK_NAME=pet-app
 echo "Creating ssh key"
 ssh-keygen -b 2048 -t rsa -C $AWS_KEY_PAIR -f ~/.ssh/$AWS_KEY_PAIR -m PEM -q -N ""
 echo "Importing key pair"
-aws ec2 import-key-pair --key-name $AWS_KEY_PAIR --public-key-material fileb://$HOME/.ssh/${AWS_KEY_PAIR}.pub --profile personal > output 2>&1
+aws ec2 import-key-pair --key-name $AWS_KEY_PAIR --public-key-material fileb://$HOME/.ssh/${AWS_KEY_PAIR}.pub > output 2>&1
 echo "Launching stack creation"
-aws cloudformation create-stack --stack-name $STACK_NAME --template-body file:///$(pwd)/aws-template.yml --parameters ParameterKey=AZs,ParameterValue=us-east-1a\\,us-east-1b ParameterKey=DBMasterPass,ParameterValue=${DB_PASSWORD} ParameterKey=KeyPair,ParameterValue=${AWS_KEY_PAIR} --profile personal --output text > output 2>&1
+aws cloudformation create-stack --stack-name $STACK_NAME --template-body file:///$(pwd)/aws-template.yml --parameters ParameterKey=AZs,ParameterValue=us-east-1a\\,us-east-1b ParameterKey=DBMasterPass,ParameterValue=${DB_PASSWORD} ParameterKey=KeyPair,ParameterValue=${AWS_KEY_PAIR} --output text > output 2>&1
 echo "Waiting for stack create completed"
-aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --profile personal 2>&1
+aws cloudformation wait stack-create-complete --stack-name $STACK_NAME 2>&1
 
-DB_HOST=$(aws cloudformation list-exports --profile personal --query "Exports[?Name==\`${STACK_NAME}-DBHost\`].Value" --output text)
-BASTION_IP=$(aws cloudformation list-exports --profile personal --query "Exports[?Name==\`${STACK_NAME}-BastionIP\`].Value" --output text)
-APP_HOST=$(aws cloudformation list-exports --profile personal --query "Exports[?Name==\`${STACK_NAME}-AppHost\`].Value" --output text)
+DB_HOST=$(aws cloudformation list-exports --query "Exports[?Name==\`${STACK_NAME}-DBHost\`].Value" --output text)
+BASTION_IP=$(aws cloudformation list-exports --query "Exports[?Name==\`${STACK_NAME}-BastionIP\`].Value" --output text)
+APP_HOST=$(aws cloudformation list-exports --query "Exports[?Name==\`${STACK_NAME}-AppHost\`].Value" --output text)
 
 echo "\nYou need to run\n"
 echo "export DB_HOST=${DB_HOST}"
