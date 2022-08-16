@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ssh-add ~/.ssh/$AWS_KEY_PAIR
+ssh -AJ ec2-user@$BASTION_IP ec2-user@$APP_HOST 'sudo yum update -y'

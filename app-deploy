@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ssh-add ~/.ssh/$AWS_KEY_PAIR
+scp -i ~/.ssh/$AWS_KEY_PAIR -ro "ProxyJump ec2-user@$BASTION_IP" ./app ec2-user@$APP_HOST:
+ssh -AJ ec2-user@$BASTION_IP ec2-user@$APP_HOST 'cd app; npm i; pm2 start app.js'

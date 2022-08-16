@@ -1,0 +1,26 @@
+#!/bin/bash
+
+AWS_DEFAULT_REGION=us-east-1
+AWS_KEY_PAIR=pet-ec2
+DB_PASSWORD=Admindb123
+STACK_NAME=pet-app
+
+echo "Creating ssh key"
+ssh-keygen -b 2048 -t rsa -C $AWS_KEY_PAIR -f ~/.ssh/$AWS_KEY_PAIR -m PEM -q -N ""
+echo "Importing key pair"
+aws ec2 import-key-pair --key-name $AWS_KEY_PAIR --public-key-material fileb://$HOME/.ssh/${AWS_KEY_PAIR}.pub --profile personal > output 2>&1
+echo "Launching stack creation"
+aws cloudformation create-stack --stack-name $STACK_NAME --template-body file:///$(pwd)/aws-template.yml --parameters ParameterKey=AZs,ParameterValue=us-east-1a\\,us-east-1b ParameterKey=DBMasterPass,ParameterValue=${DB_PASSWORD} ParameterKey=KeyPair,ParameterValue=${AWS_KEY_PAIR} --profile personal --output text > output 2>&1
+echo "Waiting for stack create completed"
+aws cloudformation wait stack-create-complete --stack-name $STACK_NAME --profile personal 2>&1
+
+DB_HOST=$(aws cloudformation list-exports --profile personal --query "Exports[?Name==\`${STACK_NAME}-DBHost\`].Value" --output text)
+BASTION_IP=$(aws cloudformation list-exports --profile personal --query "Exports[?Name==\`${STACK_NAME}-BastionIP\`].Value" --output text)
+APP_HOST=$(aws cloudformation list-exports --profile personal --query "Exports[?Name==\`${STACK_NAME}-AppHost\`].Value" --output text)
+
+echo "\nYou need to run\n"
+echo "export DB_HOST=${DB_HOST}"
+echo "export BASTION_IP=${BASTION_IP}"
+echo "export APP_HOST=${APP_HOST}"
+echo "export DB_PASSWORD=${DB_PASSWORD}"
+echo "export AWS_KEY_PAIR=${AWS_KEY_PAIR}"

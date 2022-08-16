@@ -1,0 +1,423 @@
+AWSTemplateFormatVersion: 2010-09-09
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "VPC Configuration"
+        Parameters:
+          - VPCCIDR
+          - AZs
+      - Label:
+          default: "Public Subnet configuration"
+        Parameters:
+          - PublicSubnet1Cidr
+          - PublicSubnet2Cidr
+      - Label:
+          default: "Private subnet configuration"
+        Parameters:
+          - PrivateSubnet1Cidr
+          - PrivateSubnet2Cidr
+      - Label:
+          default: "RDS Configuration"
+        Parameters:
+          - DBInstanceID
+          - DBName
+          - DBMasterUser
+          - DBMasterPass
+      - Label:
+          default: "EC2 Configuration"
+        Parameters:
+          - KeyPair
+          - AMI
+          - InstanceType
+    ParameterLabels:
+      AZs:
+        default: Availability Zones
+      VPCCIDR:
+        default: Enter IP address range for VPC
+      PublicSubnet1Cidr:
+        default: "Public subnet #1 IP address range"
+      PublicSubnet2Cidr:
+        default: "Public subnet #2 IP address range"
+      PrivateSubnet1Cidr:
+        default: "Private subnet #1 IP address range"
+      PrivateSubnet2Cidr:
+        default: "Private subnet #2 IP address range"
+      DBInstanceID:
+        default: Database instance identifier
+      DBName:
+        default: Database name
+      DBMasterUser:
+        default: Master user
+      DBMasterPass:
+        default: Master password
+      KeyPair:
+        default: Name of exitintig key pair
+      AMI:
+        default: An AWS AMI Id
+      InstanceType:
+        default: EC2 instance valid type
+Parameters:
+  AZs:
+    Description: >-
+      List of AZs to use for the subnets in the VPC.
+      Note: The logical order is preserved.
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+  VPCCIDR:
+    Description: The IP address range for this VPC
+    Type: String
+    Default: 11.0.0.0/16
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    MaxLength: '18'
+    MinLength: '9'
+  PublicSubnet1Cidr:
+    Description: >-
+      The IP address range for 'public' subnet in AZ 1
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    Default: 11.0.0.0/18
+  PublicSubnet2Cidr:
+    Description: >-
+      The IP address range for 'public' subnet in AZ 2
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    Default: 11.0.64.0/18
+  PrivateSubnet1Cidr:
+    Description: >-
+      The IP address range for 'private' subnet in AZ 1
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    Default: 11.0.128.0/18
+  PrivateSubnet2Cidr:
+    Description: >-
+      The IP address range for 'private' subnet in AZ 2
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    Default: 11.0.192.0/18
+  DBInstanceID:
+    Description: RDS Instance name
+    Type: String
+    Default: main-rds
+  DBName:
+    Description: Main database name
+    Type: String
+    Default: appdb
+  DBMasterUser:
+    Description: Database master user
+    Type: String
+    Default: root
+  DBMasterPass:
+    Description: Database master password
+    Type: String
+  KeyPair:
+    Description: Name of exitintig key pair
+    Type: AWS::EC2::KeyPair::KeyName
+  AMI:
+    Description: An AWS AMI Id
+    Type: String
+    Default: ami-090fa75af13c156b4
+  InstanceType:
+    Description: EC2 instance valid type
+    Type: String
+    Default: t2.micro
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !Ref AZs]
+      CidrBlock: !Ref PublicSubnet1Cidr
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'Public subnet 1 (${AWS::StackName})'
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !Ref AZs]
+      CidrBlock: !Ref PublicSubnet2Cidr
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'Public subnet 2 (${AWS::StackName})'
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !Ref AZs]
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'Private subnet 1 (${AWS::StackName})'
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !Ref AZs]
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'Private subnet 2 (${AWS::StackName})'
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ig'
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+  NatGateway2EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway2EIP.AllocationId
+      SubnetId: !Ref PublicSubnet2
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Public Routes
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Private Routes (AZ1)
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName} Private Routes (AZ2)
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: bastion-sg
+      GroupDescription: Application Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: bastion sg
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: app-sg
+      GroupDescription: Application Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        CidrIp: !Ref PrivateSubnet2Cidr
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !Ref BastionSecurityGroup
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: Pet application sg
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: ApplicationSecurityGroup
+    Properties:
+      GroupName: db-sg
+      GroupDescription: Database Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        SourceSecurityGroupId: !Ref ApplicationSecurityGroup
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: Pet database sg
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Main database subnet group
+      SubnetIds:
+        - !GetAtt PrivateSubnet2.SubnetId
+        - !GetAtt PrivateSubnet1.SubnetId
+  RDSMySQLInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      AvailabilityZone: !Select [1, !Ref AZs]
+      DBInstanceIdentifier: !Ref DBInstanceID
+      DBName: appdb
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      Engine: mysql
+      MasterUsername: !Ref DBMasterUser
+      MasterUserPassword: !Ref DBMasterPass
+      MultiAZ: false
+      Port: 3306
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      StorageType: gp2
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+  ApplicationInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: PrivateSubnet1RouteTableAssociation
+    Properties:
+      KeyName: !Ref KeyPair
+      DisableApiTermination: false
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: false
+          DeviceIndex: 0
+          GroupSet: 
+            - !Ref ApplicationSecurityGroup
+          SubnetId: !GetAtt PrivateSubnet1.SubnetId
+      BlockDeviceMappings: 
+        - DeviceName: /dev/xvdb
+          Ebs: 
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 8
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          su - ec2-user
+          touch ~/.bashrc
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+          . ~/.nvm/nvm.sh
+          source ~/.bashrc
+          nvm install --lts
+          node --version
+          npm i -g pm2
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyPair
+      DisableApiTermination: false
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet: 
+            - !Ref BastionSecurityGroup
+          SubnetId: !GetAtt PublicSubnet1.SubnetId
+      BlockDeviceMappings: 
+        - DeviceName: /dev/xvdb
+          Ebs: 
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 8
+Outputs:
+  RDSHost:
+    Description: RDS Host
+    Value: !GetAtt RDSMySQLInstance.Endpoint.Address
+    Export:
+      Name: !Sub "${AWS::StackName}-DBHost"
+  BastionIP:
+    Description: Bastion IP
+    Value: !GetAtt BastionInstance.PublicIp
+    Export:
+      Name: !Sub "${AWS::StackName}-BastionIP"
+  AppHost:
+    Description: App Host IP
+    Value: !GetAtt ApplicationInstance.PrivateIp
+    Export:
+      Name: !Sub "${AWS::StackName}-AppHost"
